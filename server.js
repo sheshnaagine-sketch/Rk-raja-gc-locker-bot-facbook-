@@ -1,41 +1,32 @@
 // ============================================================
-//   RK RAJA XWD BOT ❤️ — Render Deploy Ready (FINAL)
-//   Express + Facebook Bot + Live Dashboard
+//   RK RAJA XWD BOT ❤️ — Render + Yarn Ready
 // ============================================================
 
-// ---------- GLOBAL ERROR HANDLERS ----------
 process.on('uncaughtException', (err) => {
-  console.error('💥 UNCAUGHT EXCEPTION:', err && err.stack ? err.stack : err);
-  process.exit(1);
+  console.error('💥 UNCAUGHT:', err && err.stack ? err.stack : err);
 });
 process.on('unhandledRejection', (err) => {
-  console.error('💥 UNHANDLED REJECTION:', err && err.stack ? err.stack : err);
-  process.exit(1);
+  console.error('💥 UNHANDLED:', err && err.stack ? err.stack : err);
 });
 
-// ---------- STEP LOGGING ----------
-console.log('▶ [1/6] Loading express...');
+console.log('▶ Loading express...');
 const express = require("express");
-console.log('✅ [2/6] Express loaded');
-
-console.log('▶ [3/6] Loading Facebook chat API...');
-let login;
-try {
-  login = require("@dongdev/fca-unofficial");
-  console.log('✅ [4/6] @dongdev/fca-unofficial loaded. Type:', typeof login);
-} catch (e) {
-  console.error('❌ [4/6] FCA LOAD FAILED:', e.message);
-  console.error('Full error:', e);
-  process.exit(1);
-}
-
-console.log('▶ [5/6] Setting up express app...');
 const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
-console.log('✅ [6/6] App ready, starting server...');
+console.log('✅ Express ready');
 
-// ================= RUNTIME STATE =================
+console.log('▶ Loading FCA...');
+let login;
+try {
+  login = require("@dongdev/fca-unofficial");
+  console.log('✅ FCA loaded, type:', typeof login);
+} catch (e) {
+  console.error('❌ FCA LOAD FAILED:', e.message);
+  login = null;
+}
+
+// ================= RUNTIME =================
 const runtime = {
   running: false,
   api: null,
@@ -56,7 +47,6 @@ const state = {
 const FULL_GALI = ["ma ki","maki","maa ki","teri ma","bhen ki","behen ki","bhosd","bsdk","madarch","chutiya","gandu","laude","lund","randi","kutti","harami","saala","kutta","kamina"];
 const MILD_GALI = ["rk","raja"];
 
-// ================= HELPERS =================
 function addLog(msg, type = "info") {
   runtime.logs.push({ time: new Date().toLocaleTimeString(), msg, type });
   if (runtime.logs.length > 80) runtime.logs.shift();
@@ -73,7 +63,7 @@ const hasMild = (t) => MILD_GALI.some(w => new RegExp(`\\b${w}\\b`).test((t || "
 // ================= MESSAGE HANDLER =================
 function handleMessage(api, event) {
   const { threadID, senderID, body, messageID } = event;
-  if (String(threadID) !== String(runtime.config.groupUid)) return;
+  if (!runtime.config || String(threadID) !== String(runtime.config.groupUid)) return;
   const admin = isAdmin(senderID);
 
   if (isCmd(body)) {
@@ -225,8 +215,9 @@ function enforceLocks(api) {
   }
 }
 
-// ================= API: START =================
+// ================= API ROUTES =================
 app.post("/api/start", async (req, res) => {
+  if (!login) return res.json({ ok: false, msg: "FCA load nahi hua — build logs check karo" });
   if (runtime.running) return res.json({ ok: false, msg: "Bot already running!" });
 
   const { groupUid, adminUid, prefix, c3c } = req.body;
@@ -263,11 +254,11 @@ app.post("/api/start", async (req, res) => {
     runtime.api = api;
     runtime.running = true;
     runtime.startTime = Date.now();
-    addLog("✅ Login successful — FB account connected", "ok");
+    addLog("✅ Login successful — FB connected", "ok");
 
     api.getThreadInfo(runtime.config.groupUid, (e, info) => {
       if (e) {
-        addLog("❌ Group info fetch failed — group UID check karo", "err");
+        addLog("❌ Group info fetch failed — UID check karo", "err");
       } else {
         state.gcOriginalName = info.threadName;
         state.gcLocked = true;
@@ -278,13 +269,13 @@ app.post("/api/start", async (req, res) => {
         state.nickLocked = true;
         state.muteAll = true;
         runtime.stats.nicks = Object.keys(state.nickMap).length;
-        addLog(`🔒 GC name locked: ${info.threadName}`, "ok");
-        addLog(`🔒 ${runtime.stats.nicks} nicknames locked`, "ok");
-        addLog(`🔒 Group pic: ${state.picLocked ? "LOCKED" : "skipped"}`, "ok");
-        addLog("🔇 MUTE-ALL ON — sirf admin bol sakta", "ok");
-        addLog("🛡️ Anti-Gali filter ON", "ok");
-        addLog("✅ Bot READY! Sab locks active 🎯", "ok");
-        api.sendMessage("✅ *RK RAJA XWD BOT ONLINE* ❤️\n\n🔒 GC lock: ON\n🔒 Nick lock: ON\n🔒 Pic lock: ON\n🔇 Mute-all: ON\n🛡️ Anti-gali: ON\n\nType #help for commands", runtime.config.groupUid);
+        addLog(`🔒 GC locked: ${info.threadName}`, "ok");
+        addLog(`🔒 ${runtime.stats.nicks} nicks locked`, "ok");
+        addLog(`🔒 Pic: ${state.picLocked ? "LOCKED" : "skipped"}`, "ok");
+        addLog("🔇 MUTE-ALL ON", "ok");
+        addLog("🛡️ Anti-Gali ON", "ok");
+        addLog("✅ Bot READY 🎯", "ok");
+        api.sendMessage("✅ *RK RAJA XWD BOT ONLINE* ❤️\n\n🔒 GC lock ON\n🔒 Nick lock ON\n🔒 Pic lock ON\n🔇 Mute-all ON\n🛡️ Anti-gali ON\n\nType #help", runtime.config.groupUid);
       }
     });
 
@@ -302,29 +293,24 @@ app.post("/api/start", async (req, res) => {
   });
 });
 
-// ================= API: STOP =================
 app.post("/api/stop", (req, res) => {
   if (!runtime.running) return res.json({ ok: false, msg: "Bot not running" });
   if (runtime.interval) clearInterval(runtime.interval);
   try { runtime.api && runtime.api.logout(() => {}); } catch (e) {}
   runtime.running = false;
   runtime.api = null;
-  addLog("⏹ Bot stopped by user", "warn");
+  addLog("⏹ Bot stopped", "warn");
   res.json({ ok: true });
 });
 
-// ================= API: STATUS =================
 app.get("/api/status", (req, res) => {
   if (runtime.running && runtime.startTime) {
     runtime.stats.uptime = Math.floor((Date.now() - runtime.startTime) / 1000);
   }
-  res.json({
-    running: runtime.running,
-    stats: runtime.stats,
-    logs: runtime.logs,
-    config: runtime.config ? { groupUid: runtime.config.groupUid, adminUid: runtime.config.adminUid, prefix: runtime.config.prefix } : null,
-  });
+  res.json({ running: runtime.running, stats: runtime.stats, logs: runtime.logs });
 });
+
+app.get("/health", (req, res) => res.send("OK"));
 
 // ================= DASHBOARD HTML =================
 const HTML = `<!DOCTYPE html>
@@ -337,113 +323,82 @@ const HTML = `<!DOCTYPE html>
   *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
   html,body{min-height:100vh;background:#06061a;color:#fff;overflow-x:hidden}
   body::before{content:'';position:fixed;inset:0;z-index:-1;
-    background:
-      radial-gradient(circle at 15% 20%,rgba(168,85,247,.35),transparent 45%),
-      radial-gradient(circle at 85% 15%,rgba(236,72,153,.30),transparent 45%),
-      radial-gradient(circle at 50% 95%,rgba(34,211,238,.25),transparent 50%);}
+    background:radial-gradient(circle at 15% 20%,rgba(168,85,247,.35),transparent 45%),
+    radial-gradient(circle at 85% 15%,rgba(236,72,153,.30),transparent 45%),
+    radial-gradient(circle at 50% 95%,rgba(34,211,238,.25),transparent 50%);}
   .header{text-align:center;padding:36px 16px 8px}
   .header h1{font-size:clamp(24px,5.5vw,44px);font-weight:900;letter-spacing:1.2px;
     background:linear-gradient(90deg,#a855f7,#ec4899,#22d3ee,#a855f7);
     background-size:300% 100%;-webkit-background-clip:text;background-clip:text;
     color:transparent;animation:shine 4s linear infinite;filter:drop-shadow(0 0 22px rgba(236,72,153,.45))}
   @keyframes shine{0%{background-position:0% 50%}100%{background-position:300% 50%}}
-  .header p{color:#a1a1c7;font-size:13px;margin-top:8px;letter-spacing:.4px}
+  .header p{color:#a1a1c7;font-size:13px;margin-top:8px}
   .wrap{max-width:1180px;margin:0 auto;padding:18px}
   .grid{display:grid;grid-template-columns:1fr 1.15fr;gap:20px}
   @media(max-width:880px){.grid{grid-template-columns:1fr}}
   .card{background:rgba(255,255,255,.05);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
     border:1px solid rgba(255,255,255,.10);border-radius:22px;padding:22px;
     box-shadow:0 10px 40px rgba(0,0,0,.4);position:relative;overflow:hidden}
-  .card::before{content:'';position:absolute;top:-50%;left:-20%;width:220px;height:220px;
-    background:radial-gradient(circle,rgba(168,85,247,.3),transparent 70%);filter:blur(30px);pointer-events:none}
-  .card h2{font-size:14px;margin-bottom:16px;color:#e9d5ff;letter-spacing:.7px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .card h2{font-size:14px;margin-bottom:16px;color:#e9d5ff;letter-spacing:.7px;text-transform:uppercase}
   .field{margin-bottom:14px}
   .field label{display:block;font-size:11.5px;color:#a1a1c7;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;font-weight:600}
   .field input,.field textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
     background:rgba(0,0,0,.4);color:#fff;font-size:14px;outline:none;transition:.25s;font-family:inherit}
-  .field input:focus,.field textarea:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.22);background:rgba(0,0,0,.55)}
-  .field textarea{resize:vertical;min-height:88px;font-family:'Consolas',monospace;font-size:12px;line-height:1.5}
+  .field input:focus,.field textarea:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.22)}
+  .field textarea{resize:vertical;min-height:88px;font-family:'Consolas',monospace;font-size:12px}
   .btns{display:flex;gap:12px;margin-top:10px}
-  .btn{flex:1;padding:14px;border-radius:14px;border:none;cursor:pointer;font-weight:700;font-size:14px;letter-spacing:.6px;
-    transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px;text-transform:uppercase}
+  .btn{flex:1;padding:14px;border-radius:14px;border:none;cursor:pointer;font-weight:700;font-size:14px;letter-spacing:.6px;transition:.25s;text-transform:uppercase}
   .btn-run{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;box-shadow:0 8px 24px rgba(34,197,94,.4)}
-  .btn-run:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 32px rgba(34,197,94,.55)}
   .btn-stop{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;box-shadow:0 8px 24px rgba(239,68,68,.4)}
-  .btn-stop:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 32px rgba(239,68,68,.55)}
-  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
-  .statusbar{display:flex;align-items:center;gap:10px;margin-top:16px;padding:12px 14px;border-radius:14px;
-    background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);font-size:13px}
-  .dot{width:11px;height:11px;border-radius:50%;background:#ef4444;box-shadow:0 0 12px #ef4444;flex-shrink:0}
-  .dot.live{background:#22c55e;box-shadow:0 0 16px #22c55e;animation:pulse 1.4s infinite}
-  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.75}}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .statusbar{display:flex;align-items:center;gap:10px;margin-top:16px;padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);font-size:13px}
+  .dot{width:11px;height:11px;border-radius:50%;background:#ef4444;flex-shrink:0}
+  .dot.live{background:#22c55e;animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-  .stat{background:linear-gradient(145deg,rgba(168,85,247,.20),rgba(236,72,153,.10));
-    border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:16px;text-align:center;position:relative;overflow:hidden}
-  .stat::after{content:'';position:absolute;inset:0;background:linear-gradient(145deg,transparent,rgba(255,255,255,.04));pointer-events:none}
-  .stat .num{font-size:28px;font-weight:800;color:#f0abfc;letter-spacing:1px;line-height:1.1}
-  .stat .lbl{font-size:10.5px;color:#c4b5fd;margin-top:5px;letter-spacing:.6px;text-transform:uppercase;font-weight:600}
-  .log{height:250px;overflow-y:auto;background:rgba(0,0,0,.5);border-radius:14px;padding:12px;
-    font-size:12.5px;font-family:'Consolas',monospace;line-height:1.75;border:1px solid rgba(255,255,255,.08);margin-top:8px}
-  .log::-webkit-scrollbar{width:6px}
-  .log::-webkit-scrollbar-thumb{background:#a855f7;border-radius:4px}
-  .log::-webkit-scrollbar-track{background:transparent}
-  .log div{margin-bottom:2px}
-  .log .t{color:#64748b;margin-right:6px}
-  .log .ok{color:#4ade80}
-  .log .warn{color:#fbbf24}
-  .log .err{color:#f87171}
-  .log .info{color:#38bdf8}
+  .stat{background:linear-gradient(145deg,rgba(168,85,247,.20),rgba(236,72,153,.10));border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:16px;text-align:center}
+  .stat .num{font-size:28px;font-weight:800;color:#f0abfc}
+  .stat .lbl{font-size:10.5px;color:#c4b5fd;margin-top:5px;text-transform:uppercase;font-weight:600}
+  .log{height:250px;overflow-y:auto;background:rgba(0,0,0,.5);border-radius:14px;padding:12px;font-size:12.5px;font-family:'Consolas',monospace;line-height:1.75;margin-top:8px}
+  .log .ok{color:#4ade80}.log .warn{color:#fbbf24}.log .err{color:#f87171}.log .info{color:#38bdf8}.log .t{color:#64748b;margin-right:6px}
   .cmds{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-  .cmd{background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.38);
-    color:#e9d5ff;padding:8px 13px;border-radius:11px;font-size:12px;font-family:monospace;
-    transition:.2s;cursor:default;font-weight:500}
-  .cmd:hover{background:rgba(168,85,247,.32);transform:translateY(-2px);border-color:#a855f7}
-  .footer{text-align:center;padding:30px 12px;color:#6b6b8f;font-size:12px;letter-spacing:.4px}
-  .footer b{color:#ec4899}
-  .toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:12px;
-    background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;
-    z-index:999;opacity:0;transform:translateX(400px);transition:.35s;max-width:300px;backdrop-filter:blur(10px)}
+  .cmd{background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.38);color:#e9d5ff;padding:8px 13px;border-radius:11px;font-size:12px;font-family:monospace}
+  .footer{text-align:center;padding:30px;color:#6b6b8f;font-size:12px}.footer b{color:#ec4899}
+  .toast{position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:12px;background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;z-index:999;opacity:0;transform:translateX(400px);transition:.35s;max-width:300px}
   .toast.show{opacity:1;transform:translateX(0)}
-  .toast.ok{border-color:#22c55e;box-shadow:0 0 20px rgba(34,197,94,.35)}
-  .toast.err{border-color:#ef4444;box-shadow:0 0 20px rgba(239,68,68,.35)}
+  .toast.ok{border-color:#22c55e}.toast.err{border-color:#ef4444}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>RK RAJA XWD BOT ❤️</h1>
-  <p>Facebook Group Protector • Auto Moderation • Live Control Panel</p>
-</div>
+<div class="header"><h1>RK RAJA XWD BOT ❤️</h1><p>Facebook Group Protector • Live Control Panel</p></div>
 <div class="wrap">
   <div class="grid">
     <div class="card">
       <h2>⚙️ Bot Configuration</h2>
       <div class="field"><label>🆔 Group UID</label><input id="groupUid" placeholder="1234567890123456" /></div>
-      <div class="field"><label>👑 Admin UID (FB User ID)</label><input id="adminUid" placeholder="100012345678901" /></div>
+      <div class="field"><label>👑 Admin UID</label><input id="adminUid" placeholder="100012345678901" /></div>
       <div class="field"><label># Prefix</label><input id="prefix" value="#" /></div>
-      <div class="field"><label>🔗 C3C Paste (AppState JSON)</label><textarea id="c3c" placeholder='[{"key":"c_user","value":"...","domain":".facebook.com"}]'></textarea></div>
+      <div class="field"><label>🔗 C3C Paste (AppState JSON)</label><textarea id="c3c" placeholder='[{"key":"c_user","value":"..."}]'></textarea></div>
       <div class="btns">
         <button class="btn btn-run" id="runBtn" onclick="startBot()">▶ Run</button>
         <button class="btn btn-stop" id="stopBtn" onclick="stopBot()" disabled>⏹ Stop</button>
       </div>
-      <div class="statusbar">
-        <span class="dot" id="dot"></span>
-        <span id="statusText">Offline — Bot is not running</span>
-      </div>
+      <div class="statusbar"><span class="dot" id="dot"></span><span id="statusText">Offline</span></div>
     </div>
     <div class="card">
       <h2>📊 Live Dashboard</h2>
       <div class="stats">
-        <div class="stat"><div class="num" id="sBlocked">0</div><div class="lbl">Messages Blocked</div></div>
+        <div class="stat"><div class="num" id="sBlocked">0</div><div class="lbl">Blocked</div></div>
         <div class="stat"><div class="num" id="sNick">0</div><div class="lbl">Nicks Locked</div></div>
         <div class="stat"><div class="num" id="sAbuse">0</div><div class="lbl">Abuse Caught</div></div>
         <div class="stat"><div class="num" id="sUptime">00:00</div><div class="lbl">Uptime</div></div>
       </div>
-      <h2 style="margin-top:18px">📜 Activity Log</h2>
+      <h2 style="margin-top:18px">📜 Logs</h2>
       <div class="log" id="log"></div>
     </div>
   </div>
   <div class="card" style="margin-top:20px">
-    <h2>📖 All Commands (with prefix)</h2>
+    <h2>📖 Commands</h2>
     <div class="cmds">
       <span class="cmd">#help</span><span class="cmd">#lockgc</span><span class="cmd">#unlockgc</span>
       <span class="cmd">#locknick</span><span class="cmd">#unlocknick</span><span class="cmd">#lockpic</span>
@@ -452,123 +407,62 @@ const HTML = `<!DOCTYPE html>
       <span class="cmd">#antigali on/off</span><span class="cmd">#status</span>
     </div>
   </div>
-  <div class="footer">Made with <b>❤️</b> by RK RAJA • XWD BOT v1.0</div>
+  <div class="footer">Made with <b>❤️</b> by RK RAJA</div>
 </div>
-
 <script>
 const $ = id => document.getElementById(id);
 let pollTimer = null;
-
 function toast(msg, type='ok'){
-  const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.classList.add('show'), 30);
-  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 400); }, 3200);
+  const t = document.createElement('div'); t.className = 'toast ' + type; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(()=>t.classList.add('show'),30);
+  setTimeout(()=>{t.classList.remove('show'); setTimeout(()=>t.remove(),400);},3200);
 }
-
 async function startBot(){
-  const groupUid = $('groupUid').value.trim();
-  const adminUid = $('adminUid').value.trim();
-  const prefix   = $('prefix').value.trim() || '#';
-  const c3c      = $('c3c').value.trim();
-
-  if(!groupUid){ toast('❌ Group UID daalo','err'); return; }
-  if(!adminUid){ toast('❌ Admin UID daalo','err'); return; }
-  if(!c3c){ toast('❌ C3C paste karo','err'); return; }
-
-  $('runBtn').disabled = true;
-  $('runBtn').textContent = '⏳ Starting...';
-  toast('🚀 Bot start ho raha hai...','ok');
-
-  try {
-    const res = await fetch('/api/start', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ groupUid, adminUid, prefix, c3c })
-    });
+  const groupUid = $('groupUid').value.trim(), adminUid = $('adminUid').value.trim(),
+        prefix = $('prefix').value.trim() || '#', c3c = $('c3c').value.trim();
+  if(!groupUid){toast('❌ Group UID','err');return}
+  if(!adminUid){toast('❌ Admin UID','err');return}
+  if(!c3c){toast('❌ C3C','err');return}
+  $('runBtn').disabled = true; $('runBtn').textContent = '⏳ Starting...';
+  try{
+    const res = await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({groupUid,adminUid,prefix,c3c})});
     const data = await res.json();
-    if(!data.ok){ toast('❌ ' + data.msg, 'err'); $('runBtn').disabled=false; $('runBtn').textContent='▶ Run'; return; }
-    $('stopBtn').disabled = false;
-    $('runBtn').textContent = '▶ Run';
-    $('dot').classList.add('live');
-    $('statusText').textContent = 'Online — Bot is running ✅';
-    toast('✅ Bot ONLINE!','ok');
-    startPolling();
-  } catch(e){
-    toast('❌ ' + e.message, 'err');
-    $('runBtn').disabled = false;
-    $('runBtn').textContent = '▶ Run';
-  }
+    if(!data.ok){toast('❌ '+data.msg,'err');$('runBtn').disabled=false;$('runBtn').textContent='▶ Run';return}
+    $('stopBtn').disabled=false; $('runBtn').textContent='▶ Run';
+    $('dot').classList.add('live'); $('statusText').textContent='Online ✅';
+    toast('✅ Bot ONLINE!','ok'); startPolling();
+  }catch(e){toast('❌ '+e.message,'err');$('runBtn').disabled=false;$('runBtn').textContent='▶ Run'}
 }
-
 async function stopBot(){
-  $('stopBtn').disabled = true;
-  try {
-    const res = await fetch('/api/stop', { method:'POST' });
-    const data = await res.json();
-    if(data.ok){
-      $('runBtn').disabled = false;
-      $('dot').classList.remove('live');
-      $('statusText').textContent = 'Offline — Bot stopped';
-      toast('⏹ Bot stopped','err');
-      if(pollTimer) clearInterval(pollTimer);
-    }
-  } catch(e){ toast('❌ ' + e.message, 'err'); }
+  $('stopBtn').disabled=true;
+  try{
+    const res = await fetch('/api/stop',{method:'POST'}); const data = await res.json();
+    if(data.ok){$('runBtn').disabled=false;$('dot').classList.remove('live');$('statusText').textContent='Offline';toast('⏹ Stopped','err');if(pollTimer)clearInterval(pollTimer)}
+  }catch(e){toast('❌ '+e.message,'err')}
 }
-
-function startPolling(){
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(fetchStatus, 1800);
-  fetchStatus();
-}
-
-function fmtTime(s){
-  const m = String(Math.floor(s/60)).padStart(2,'0');
-  const sec = String(s%60).padStart(2,'0');
-  return m + ':' + sec;
-}
-
+function startPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(fetchStatus,1800);fetchStatus()}
+function fmtTime(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
 async function fetchStatus(){
-  try {
-    const r = await fetch('/api/status');
-    const d = await r.json();
-    $('sBlocked').textContent = d.stats.blocked;
-    $('sNick').textContent    = d.stats.nicks;
-    $('sAbuse').textContent   = d.stats.abuse;
-    $('sUptime').textContent  = fmtTime(d.stats.uptime || 0);
-
+  try{
+    const r = await fetch('/api/status'); const d = await r.json();
+    $('sBlocked').textContent=d.stats.blocked; $('sNick').textContent=d.stats.nicks;
+    $('sAbuse').textContent=d.stats.abuse; $('sUptime').textContent=fmtTime(d.stats.uptime||0);
     const logEl = $('log');
-    logEl.innerHTML = d.logs.map(l =>
-      '<div><span class="t">[' + l.time + ']</span><span class="' + l.type + '">' + l.msg + '</span></div>'
-    ).join('');
+    logEl.innerHTML = d.logs.map(l=>'<div><span class="t">['+l.time+']</span><span class="'+l.type+'">'+l.msg+'</span></div>').join('');
     logEl.scrollTop = logEl.scrollHeight;
-
-    if(d.running){
-      $('dot').classList.add('live');
-      $('statusText').textContent = 'Online — Bot is running ✅';
-      $('runBtn').disabled = true;
-      $('stopBtn').disabled = false;
-    } else {
-      $('dot').classList.remove('live');
-      $('statusText').textContent = 'Offline — Bot is not running';
-      $('runBtn').disabled = false;
-      $('stopBtn').disabled = true;
-    }
-  } catch(e){}
+    if(d.running){$('dot').classList.add('live');$('statusText').textContent='Online ✅';$('runBtn').disabled=true;$('stopBtn').disabled=false}
+    else{$('dot').classList.remove('live');$('statusText').textContent='Offline';$('runBtn').disabled=false;$('stopBtn').disabled=true}
+  }catch(e){}
 }
-
-fetchStatus();
-setInterval(fetchStatus, 2500);
+fetchStatus(); setInterval(fetchStatus,2500);
 </script>
 </body>
 </html>`;
 
 app.get("/", (req, res) => res.type("html").send(HTML));
 
-// ================= SERVER START (0.0.0.0 binding for Render) =================
+// ================= SERVER =================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🔥 RK RAJA XWD BOT server running on 0.0.0.0:${PORT}`);
+  console.log(`🔥 Server on 0.0.0.0:${PORT}`);
 });
