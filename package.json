@@ -1,0 +1,16 @@
+{
+  "name": "rk-raja-bot",
+  "version": "1.0.0",
+  "description": "RK RAJA XWD BOT ❤️ — Facebook Group Protector",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@dongdev/fca-unofficial": "^3.5.0"
+  }
+}
