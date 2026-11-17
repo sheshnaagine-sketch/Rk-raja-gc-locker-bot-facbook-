@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "@dongdev/fca-unofficial": "^3.5.0"
+    "@dongdev/fca-unofficial": "^4.0.3"
   }
 }
