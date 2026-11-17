@@ -1,5 +1,5 @@
 // ============================================================
-//   RK RAJA XWD BOT ❤️ — Render Deploy Ready (FINAL FIX)
+//   RK RAJA XWD BOT ❤️ — Render Deploy Ready (FINAL)
 //   Express + Facebook Bot + Live Dashboard
 // ============================================================
 
@@ -21,8 +21,8 @@ console.log('✅ [2/6] Express loaded');
 console.log('▶ [3/6] Loading Facebook chat API...');
 let login;
 try {
-  login = require("fb-chat-api");
-  console.log('✅ [4/6] fb-chat-api loaded. Type:', typeof login);
+  login = require("@dongdev/fca-unofficial");
+  console.log('✅ [4/6] @dongdev/fca-unofficial loaded. Type:', typeof login);
 } catch (e) {
   console.error('❌ [4/6] FCA LOAD FAILED:', e.message);
   console.error('Full error:', e);
