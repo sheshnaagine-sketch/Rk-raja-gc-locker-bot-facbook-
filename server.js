@@ -1,14 +1,39 @@
 // ============================================================
-//   RK RAJA XWD BOT ❤️ — Render Deploy Ready
-//   Express server + Facebook bot + Live Dashboard (all-in-one)
+//   RK RAJA XWD BOT ❤️ — Render Deploy Ready (FINAL FIX)
+//   Express + Facebook Bot + Live Dashboard
 // ============================================================
 
-const express = require("express");
-const login   = require("@dongdev/fca-unofficial");
+// ---------- GLOBAL ERROR HANDLERS ----------
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err && err.stack ? err.stack : err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('💥 UNHANDLED REJECTION:', err && err.stack ? err.stack : err);
+  process.exit(1);
+});
 
+// ---------- STEP LOGGING ----------
+console.log('▶ [1/6] Loading express...');
+const express = require("express");
+console.log('✅ [2/6] Express loaded');
+
+console.log('▶ [3/6] Loading Facebook chat API...');
+let login;
+try {
+  login = require("fb-chat-api");
+  console.log('✅ [4/6] fb-chat-api loaded. Type:', typeof login);
+} catch (e) {
+  console.error('❌ [4/6] FCA LOAD FAILED:', e.message);
+  console.error('Full error:', e);
+  process.exit(1);
+}
+
+console.log('▶ [5/6] Setting up express app...');
 const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+console.log('✅ [6/6] App ready, starting server...');
 
 // ================= RUNTIME STATE =================
 const runtime = {
@@ -37,6 +62,7 @@ function addLog(msg, type = "info") {
   if (runtime.logs.length > 80) runtime.logs.shift();
   console.log(`[${type}] ${msg}`);
 }
+
 const isAdmin = (id) => runtime.config && String(id) === String(runtime.config.adminUid);
 const getPfx  = () => (runtime.config && runtime.config.prefix) || "#";
 const isCmd   = (b) => b && b.startsWith(getPfx());
@@ -239,7 +265,6 @@ app.post("/api/start", async (req, res) => {
     runtime.startTime = Date.now();
     addLog("✅ Login successful — FB account connected", "ok");
 
-    // Auto start locks
     api.getThreadInfo(runtime.config.groupUid, (e, info) => {
       if (e) {
         addLog("❌ Group info fetch failed — group UID check karo", "err");
@@ -542,8 +567,8 @@ setInterval(fetchStatus, 2500);
 
 app.get("/", (req, res) => res.type("html").send(HTML));
 
-// ================= SERVER START =================
+// ================= SERVER START (0.0.0.0 binding for Render) =================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🔥 RK RAJA XWD BOT server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🔥 RK RAJA XWD BOT server running on 0.0.0.0:${PORT}`);
 });
